@@ -12,29 +12,95 @@ public class MiniBankApp {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Welcome to " + BankCalculator.bankName());
 
+        Account george = new Account("George", new BigDecimal("150.00"));
+        Account anna = new Account("Anna", new BigDecimal("80.00"));
+
         if (!checkPin(scanner)) {
             System.out.println("Card blocked. Please contact your branch.");
             return;
         }
 
-        BigDecimal balance = new BigDecimal("150.00");
         boolean running = true;
+        int transactions = 0;
 
         while (running) {
             printMenu();
             String choice = scanner.nextLine().trim();
 
             switch (choice) {
-                case "1" -> BankCalculator.printBalance("George", balance);
-                case "2" -> balance = depositFlow(scanner, balance);
-                case "3" -> balance = withdrawFlow(scanner, balance);
-                case "4" -> projectInterest(scanner, balance);
+                case "1" -> System.out.println(george);
+                case "2" -> {
+                    if (depositFlow(scanner, george)) {
+                        transactions++;
+                    }
+                }
+                case "3" -> {
+                    if (withdrawFlow(scanner, george)) {
+                        transactions++;
+                    }
+                }
+                case "4" -> {
+                    if (transferFlow(scanner, george, anna)) {
+                        transactions++;
+                    }
+                }
+                case "5" -> projectInterest(scanner, george);
+                case "6" -> {
+                    System.out.println(george);
+                    System.out.println(anna);
+                }
                 case "0" -> running = false;
                 default -> System.out.println("Unknown option: '" + choice + "'");
             }
         }
-
+        System.out.println("You made " + transactions + " transaction(s) today.");
         System.out.println("Thank you for banking with " + BankCalculator.bankName());
+    }
+
+    private static void printMenu() {
+        System.out.println();
+        System.out.println("=== MENU ===");
+        System.out.println("1. My account");
+        System.out.println("2. Deposit");
+        System.out.println("3. Withdraw");
+        System.out.println("4. Transfer to Anna");
+        System.out.println("5. Interest projection");
+        System.out.println("6. Show all accounts");
+        System.out.println("0. Exit");
+    }
+
+    private static boolean depositFlow(Scanner scanner, Account account) {
+        BigDecimal amount = readAmount(scanner, "Amount to deposit: ");
+        if (account.deposit(amount)) {
+            System.out.println("Deposited " + amount + ". New balance: " + account.getBalance());
+            return true;
+        }
+        System.out.println("Deposit refused: the amount must be positive.");
+        return false;
+    }
+
+    private static boolean withdrawFlow(Scanner scanner, Account account) {
+        System.out.println("You can withdraw up to " + account.getRemainingDailyLimit() + " more today.");
+        BigDecimal amount = readAmount(scanner, "Amount to withdraw: ");
+        if (account.withdraw(amount)) {
+            System.out.println("Withdrew " + amount + ". New balance: " + account.getBalance());
+            return true;
+        }
+        System.out.println("Withdrawal refused: check the amount, your balance and today's limit.");
+        return false;
+    }
+
+    private static boolean transferFlow(Scanner scanner, Account from, Account to) {
+        System.out.println("Transfer from " + from.getHolder() + " to " + to.getHolder());
+        BigDecimal amount = readAmount(scanner, "Amount to transfer: ");
+        if (from.transferTo(to, amount)) {
+            System.out.println("Transferred " + amount + ".");
+            System.out.println(from);
+            System.out.println(to);
+            return true;
+        }
+        System.out.println("Transfer refused: check the amount, your balance and today's limit.");
+        return false;
     }
 
     private static boolean checkPin(Scanner scanner) {
@@ -46,7 +112,7 @@ public class MiniBankApp {
             String pin = scanner.nextLine();
 
             if (pin.equals(correctPin)) {
-                System.out.println("PIN accepter");
+                System.out.println("PIN accepted");
                 return true;
             }
 
@@ -56,51 +122,11 @@ public class MiniBankApp {
         return false;
     }
 
-    private static void printMenu() {
-        System.out.println();
-        System.out.println("===== MENU =====");
-        System.out.println("1. Show balance");
-        System.out.println("2. Deposit");
-        System.out.println("3. Withdraw");
-        System.out.println("4. Interest projection");
-        System.out.println("0. Exit");
-        System.out.print("Choose: ");
-    }
-
-    private static BigDecimal depositFlow(Scanner scanner, BigDecimal balance) {
-        BigDecimal amount = readAmount(scanner, "Amount to deposit: ");
-
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            System.out.println("The amount must be positive.");
-            return balance;
-        }
-        BigDecimal newBalance = BankCalculator.deposit(balance, amount);
-        System.out.println("Deposited " + amount + ". New balance: " + newBalance);
-        return newBalance;
-    }
-
-    private static BigDecimal withdrawFlow(Scanner scanner, BigDecimal balance) {
-        BigDecimal amount = readAmount(scanner, "Amount to withdraw: ");
-
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            System.out.println("The amount must be positive.");
-            return balance;
-        } else if (!BankCalculator.canWithdraw(balance, amount)) {
-            System.out.println("Insufficient funds. Your balance is " + balance);
-            return balance;
-        } else {
-            BigDecimal newBalance = BankCalculator.withdraw(balance, amount);
-            System.out.println("Withdrew " + amount + ". New balance: " + newBalance);
-            return newBalance;
-        }
-    }
-
-    private static void projectInterest(Scanner scanner, BigDecimal balance) {
-        System.out.println("How many years? ");
-        int years = Integer.parseInt(scanner.nextLine().trim());
+    private static void projectInterest(Scanner scanner, Account account) {
+        int years = readPositiveInt(scanner, "How many years? ");
 
         BigDecimal rate = new BigDecimal("0.03");
-        BigDecimal projected = balance;
+        BigDecimal projected = account.getBalance();
 
         for (int year = 1; year <= years; year++) {
             BigDecimal interest = BankCalculator.yearlyInterest(projected, rate);
@@ -119,6 +145,26 @@ public class MiniBankApp {
 
             } catch (NumberFormatException e) {
                 System.out.println("'" + input + "' is not a valid amount. Example: 25.50");
+            }
+        }
+        }
+
+        private static int readPositiveInt(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            try {
+                int number = Integer.parseInt(input);
+
+                if (number <= 0) {
+                    System.out.println("Please enter a number greater than 0.");
+                } else if (number > 50) {
+                    System.out.println("Maximum is 50 years.");
+                } else {
+                    return number;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("'" + input + "' is not a whole number.");
             }
         }
         }

@@ -5,8 +5,8 @@ import java.math.BigDecimal;
 public class ObjectsPlayground {
     public static void main(String[] args) {
 
-        Account george = new Account("George", new BigDecimal("100.00"));
-        Account anna = new Account("Anna");
+        Account george = new Account("George", "1111", new BigDecimal("100.00"));
+        Account anna = new Account("Anna", "2222");
         System.out.println("1. " + george);
         System.out.println("1. " + anna);
 
@@ -28,7 +28,7 @@ public class ObjectsPlayground {
         System.out.println("5. typed == \"1234\":     " + (typed == "1234"));
         System.out.println("5. typed.equals(\"1234\"): " + typed.equals("1234"));
 
-        Account third = new Account("Maria");
+        Account third = new Account("Maria", "3333");
         System.out.println("6. " + third);
 
         Account nobody = null;

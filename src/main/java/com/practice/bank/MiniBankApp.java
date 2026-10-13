@@ -12,10 +12,10 @@ public class MiniBankApp {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Welcome to " + BankCalculator.bankName());
 
-        Account george = new Account("George", new BigDecimal("150.00"));
-        Account anna = new Account("Anna", new BigDecimal("80.00"));
+        Account george = new Account("George", "1234", new BigDecimal("150.00"));
+        Account anna = new Account("Anna", "5678", new BigDecimal("80.00"));
 
-        if (!checkPin(scanner)) {
+        if (!checkPin(scanner, george)) {
             System.out.println("Card blocked. Please contact your branch.");
             return;
         }
@@ -49,6 +49,12 @@ public class MiniBankApp {
                     System.out.println(george);
                     System.out.println(anna);
                 }
+                case "7" -> {
+                    george.resetDailyLimit();
+                    anna.resetDailyLimit();
+                    System.out.println(" ____^^^***^^^____ A new day has started. Daily limits are reset.  ____^^^***^^^____");
+                }
+
                 case "0" -> running = false;
                 default -> System.out.println("Unknown option: '" + choice + "'");
             }
@@ -66,6 +72,7 @@ public class MiniBankApp {
         System.out.println("4. Transfer to Anna");
         System.out.println("5. Interest projection");
         System.out.println("6. Show all accounts");
+        System.out.println("7. Simulate a new day");
         System.out.println("0. Exit");
     }
 
@@ -103,16 +110,15 @@ public class MiniBankApp {
         return false;
     }
 
-    private static boolean checkPin(Scanner scanner) {
-        final String correctPin = "1234";
+    private static boolean checkPin(Scanner scanner, Account  account) {
         int attemptsLeft = 3;
 
         while (attemptsLeft > 0) {
-            System.out.print("Enter PIN: ");
-            String pin = scanner.nextLine();
+            System.out.print("Enter PIN for " + account.getHolder() + ": ");
+            String attempt = scanner.nextLine();
 
-            if (pin.equals(correctPin)) {
-                System.out.println("PIN accepted");
+            if (account.checkPin(attempt)) {
+                System.out.println("PIN accepted. Hello, " + account.getHolder() + "!");
                 return true;
             }
 

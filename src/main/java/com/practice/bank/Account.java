@@ -9,12 +9,17 @@ public class Account {
 
     private final long accountNumber;
     private final String holder;
+    private final String pin;
     private BigDecimal balance;
     private BigDecimal withdrawnToday;
 
-    public Account(String holder, BigDecimal openingBalance) {
+
+    public Account(String holder, String pin, BigDecimal openingBalance) {
         if (holder == null || holder.isBlank()) {
             throw new IllegalArgumentException("Holder name is required");
+        }
+        if (pin == null || !pin.matches("\\d{4}")) {
+            throw new IllegalArgumentException("PIN must be exactly 4 digits.");
         }
         if (openingBalance.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Opening balance cannot be negative");
@@ -22,12 +27,13 @@ public class Account {
 
         this.accountNumber = nextAccountNumber++;
         this.holder = holder;
+        this.pin = pin;
         this.balance = openingBalance;
         this.withdrawnToday = new BigDecimal("0.00");
     }
 
-    public Account(String holder) {
-        this(holder, new BigDecimal("0.00"));
+    public Account(String holder, String pin) {
+        this(holder, pin, new BigDecimal("0.00"));
     }
 
     public boolean deposit(BigDecimal amount) {
@@ -36,6 +42,10 @@ public class Account {
         }
         balance = balance.add(amount);
         return true;
+    }
+
+    public boolean checkPin(String attempt) {
+        return pin.equals(attempt);
     }
 
     public boolean withdraw(BigDecimal amount) {
@@ -75,6 +85,10 @@ public class Account {
     }
     public BigDecimal getRemainingDailyLimit() {
         return DAILY_LIMIT.subtract(withdrawnToday);
+    }
+
+    public void resetDailyLimit() {
+        withdrawnToday = new BigDecimal("0.00");
     }
 
     @Override

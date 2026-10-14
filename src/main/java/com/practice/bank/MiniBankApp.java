@@ -2,24 +2,29 @@ package com.practice.bank;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.SQLOutput;
+import java.util.List;
 import java.util.Scanner;
+
 
 public class MiniBankApp {
 
     public static void main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Welcome to " + BankCalculator.bankName());
 
-        Account george = new Account("George", "1234", new BigDecimal("150.00"));
-        Account anna = new Account("Anna", "5678", new BigDecimal("80.00"));
+        Bank bank = new Bank("Mini Bank");
+        bank.openAccount("George", "1234", new BigDecimal("100.00"));
+        bank.openAccount("Anna", "5678", new BigDecimal("100.00"));
+        bank.openAccount("Maria", "4321", new BigDecimal("100.00"));
 
-        if (!checkPin(scanner, george)) {
+        System.out.println("Welcome to " + bank.getName());
+        System.out.println("(Demo: 1001 George/1234, 1002 Anna/5678, 1003 Maria/4321)");
+
+        Account current = login(scanner, bank);
+        if (current == null) {
             System.out.println("Card blocked. Please contact your branch.");
             return;
         }
-
         boolean running = true;
         int transactions = 0;
 
@@ -28,53 +33,67 @@ public class MiniBankApp {
             String choice = scanner.nextLine().trim();
 
             switch (choice) {
-                case "1" -> System.out.println(george);
+                case "1" -> System.out.println(current);
                 case "2" -> {
-                    if (depositFlow(scanner, george)) {
+                    if (depositFlow(scanner, current)) {
                         transactions++;
                     }
                 }
                 case "3" -> {
-                    if (withdrawFlow(scanner, george)) {
+                    if (withdrawFlow(scanner, current)) {
                         transactions++;
                     }
                 }
                 case "4" -> {
-                    if (transferFlow(scanner, george, anna)) {
+                    if (transferFlow(scanner, bank, current)) {
                         transactions++;
                     }
                 }
-                case "5" -> projectInterest(scanner, george);
-                case "6" -> {
-                    System.out.println(george);
-                    System.out.println(anna);
+                case "5" -> projectInterest(scanner, current);
+                case "6" -> openAccountFlow(scanner, bank);
+                case "7" -> listAccounts(bank);
+                case "8" -> searchFlow(scanner, bank);
+                case "9" -> {
+                    bank.startNewDay();
+                    System.out.println("A new day has just started. Daily limits are 0 again.");
                 }
-                case "7" -> {
-                    george.resetDailyLimit();
-                    anna.resetDailyLimit();
-                    System.out.println(" ____^^^***^^^____ A new day has started. Daily limits are reset.  ____^^^***^^^____");
-                }
-
                 case "0" -> running = false;
                 default -> System.out.println("Unknown option: '" + choice + "'");
             }
         }
-        System.out.println("You made " + transactions + " transaction(s) today.");
-        System.out.println("Thank you for banking with " + BankCalculator.bankName());
-    }
 
+        System.out.println("You made " + transactions + " transaction(s) today.");
+        System.out.println("Thank you for banking with " + bank.getName() + "!");
+    }
     private static void printMenu() {
         System.out.println();
         System.out.println("=== MENU ===");
         System.out.println("1. My account");
         System.out.println("2. Deposit");
         System.out.println("3. Withdraw");
-        System.out.println("4. Transfer to Anna");
+        System.out.println("4. Transfer");
         System.out.println("5. Interest projection");
-        System.out.println("6. Show all accounts");
-        System.out.println("7. Simulate a new day");
+        System.out.println("6. Open a new account");
+        System.out.println("7. List all accounts");
+        System.out.println("8. Search by holder name");
+        System.out.println("9. Simulate a new day");
         System.out.println("0. Exit");
+        System.out.print("Choose:");
     }
+
+    private static Account login(Scanner scanner, Bank bank) {
+        Account account = null;
+
+        while (account == null) {
+            long number = readLong(scanner, "Account number: ");
+            account = bank.findAccount(number);
+            if (account == null) {
+                System.out.println("No account with number " + number + ". Try again.");
+            }
+        }
+        return checkPin(scanner, account) ? account : null;
+    }
+
 
     private static boolean depositFlow(Scanner scanner, Account account) {
         BigDecimal amount = readAmount(scanner, "Amount to deposit: ");
@@ -97,13 +116,21 @@ public class MiniBankApp {
         return false;
     }
 
-    private static boolean transferFlow(Scanner scanner, Account from, Account to) {
-        System.out.println("Transfer from " + from.getHolder() + " to " + to.getHolder());
-        BigDecimal amount = readAmount(scanner, "Amount to transfer: ");
-        if (from.transferTo(to, amount)) {
-            System.out.println("Transferred " + amount + ".");
+    private static boolean transferFlow(Scanner scanner, Bank bank, Account from) {
+        long targetNumber = readLong(scanner, "Transfer to account number: ");
+        Account target = bank.findAccount(targetNumber);
+        if (target == null) {
+            System.out.println("No account with number " + targetNumber + ".");
+            return false;
+        }
+        if (target.equals(from)) {
+            System.out.println("You cannot transfer to your own account.");
+            return false;
+        }
+        BigDecimal amount = readAmount(scanner, "Amount to transfer to " + target.getHolder() + ":");
+        if (from.transferTo(target, amount)) {
+            System.out.println("Transferred " + amount + " to " + target.getHolder() + ".");
             System.out.println(from);
-            System.out.println(to);
             return true;
         }
         System.out.println("Transfer refused: check the amount, your balance and today's limit.");
@@ -130,7 +157,6 @@ public class MiniBankApp {
 
     private static void projectInterest(Scanner scanner, Account account) {
         int years = readPositiveInt(scanner, "How many years? ");
-
         BigDecimal rate = new BigDecimal("0.03");
         BigDecimal projected = account.getBalance();
 
@@ -138,6 +164,56 @@ public class MiniBankApp {
             BigDecimal interest = BankCalculator.yearlyInterest(projected, rate);
             projected = projected.add(interest);
             System.out.println("Year " + year + ": " + projected + "  (+" + interest + ")");
+        }
+    }
+
+        private static void openAccountFlow(Scanner scanner, Bank bank) {
+            System.out.print("Holder name: ");
+            String holder = scanner.nextLine().trim();
+            System.out.print("Choose 4-digit PIN: ");
+            String pin = scanner.nextLine().trim();
+            BigDecimal deposit = readAmount(scanner, "Opening deposit: ");
+
+            try {
+                Account account = bank.openAccount(holder, pin, deposit);
+                System.out.println("Account opened: " + account);
+        } catch (IllegalArgumentException e) {
+                System.out.println("Could not open account" + e.getMessage());
+            }
+    }
+
+    private static void listAccounts(Bank bank) {
+        System.out.println("=== " + bank.getName() + ": " + bank.getNumberOfAccounts() + " accounts ===");
+        for (Account account : bank.getAllAccounts()) {
+            System.out.println(account);
+        }
+        System.out.println("Total deposits: " + bank.getTotalDeposits() + " EUR");
+    }
+
+    private static void searchFlow(Scanner scanner, Bank bank) {
+        System.out.print("Search holder name: ");
+        String query = scanner.nextLine().trim();
+        List<Account> found = bank.findByHolder(query);
+
+        if (found.isEmpty()) {
+            System.out.println("No accounts found for '" + query + "'.");
+        } else {
+            System.out.println(found.size() + " account(s) found:");
+            for (Account account : found) {
+                System.out.println(account);
+            }
+        }
+    }
+
+    private static long readLong(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            try {
+                return Long.parseLong(input);
+            } catch (NumberFormatException e) {
+                System.out.println("'" + input + "' is not a valid number.");
+            }
         }
     }
 

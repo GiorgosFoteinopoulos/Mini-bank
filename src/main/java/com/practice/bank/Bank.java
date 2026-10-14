@@ -59,4 +59,12 @@ public class Bank {
         }
     }
 
+    public Set<String> getHolderNames() {
+        Set<String> names = new TreeSet<>();
+        for (Account account : accounts.values()) {
+            names.add(account.getHolder());
+        }
+        return names;
+    }
+
 }

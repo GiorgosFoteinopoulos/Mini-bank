@@ -188,6 +188,7 @@ public class MiniBankApp {
             System.out.println(account);
         }
         System.out.println("Total deposits: " + bank.getTotalDeposits() + " EUR");
+        System.out.println("Customers: " + bank.getHolderNames());
     }
 
     private static void searchFlow(Scanner scanner, Bank bank) {

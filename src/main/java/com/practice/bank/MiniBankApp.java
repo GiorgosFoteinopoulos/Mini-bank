@@ -57,6 +57,7 @@ public class MiniBankApp {
                     bank.startNewDay();
                     System.out.println("A new day has just started. Daily limits are 0 again.");
                 }
+                case "10" -> closeAccountFlow(scanner, bank, current);
                 case "0" -> running = false;
                 default -> System.out.println("Unknown option: '" + choice + "'");
             }
@@ -77,6 +78,7 @@ public class MiniBankApp {
         System.out.println("7. List all accounts");
         System.out.println("8. Search by holder name");
         System.out.println("9. Simulate a new day");
+        System.out.println("10. Close an account");
         System.out.println("0. Exit");
         System.out.print("Choose:");
     }
@@ -189,6 +191,13 @@ public class MiniBankApp {
         }
         System.out.println("Total deposits: " + bank.getTotalDeposits() + " EUR");
         System.out.println("Customers: " + bank.getHolderNames());
+
+        Account richest = bank.findRichestAccount();
+        if (richest != null) {
+            System.out.println("Richest account: " + richest);
+        } else {
+            System.out.println("Richest account: none (the bank has no accounts with money).");
+        }
     }
 
     private static void searchFlow(Scanner scanner, Bank bank) {
@@ -229,6 +238,27 @@ public class MiniBankApp {
             } catch (NumberFormatException e) {
                 System.out.println("'" + input + "' is not a valid amount. Example: 25.50");
             }
+        }
+        }
+
+        private static void closeAccountFlow(Scanner scanner, Bank bank, Account current) {
+        long number = readLong(scanner, "Account number to close: ");
+
+        if (number == current.getAccountNumber()) {
+            System.out.println("You cannot close the account are logged in with.");
+            return;
+        }
+
+        Account account = bank.findAccount(number);
+        if (account == null) {
+            System.out.println("No account with number " + number + ".");
+            return;
+        }
+        if (bank.closeAccount(number)) {
+            System.out.println("Account " + number + " (" + account.getHolder() + ") closed.");
+        } else {
+            System.out.println("Account " + number + " still holds " + account.getBalance()
+            + " EUR. It must be emptied before closing.");
         }
         }
 

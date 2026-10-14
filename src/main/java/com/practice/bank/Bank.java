@@ -22,6 +22,19 @@ public class Bank {
         return account;
     }
 
+    public boolean closeAccount(long accountNumber) {
+        Account account = accounts.get(accountNumber);
+
+        if (account == null) {
+            return false;
+        }
+        if (account.getBalance().compareTo(BigDecimal.ZERO) != 0) {
+            return false;
+        }
+        accounts.remove(accountNumber);
+        return true;
+    }
+
     public Account findAccount(long accountNumber) {
         return accounts.get(accountNumber);
     }
@@ -65,6 +78,18 @@ public class Bank {
             names.add(account.getHolder());
         }
         return names;
+    }
+
+    public Account findRichestAccount() {
+        Account richest = null;
+
+        for (Account account : accounts.values()) {
+            if (richest == null || account.getBalance().compareTo(richest.getBalance()) > 0) {
+                richest = account;
+
+            }
+        }
+        return richest;
     }
 
 }

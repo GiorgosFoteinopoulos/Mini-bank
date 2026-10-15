@@ -1,5 +1,8 @@
 package com.practice.bank;
 
+import com.practice.bank.exception.AccountNotEmptyException;
+import com.practice.bank.exception.AccountNotFoundException;
+
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -22,21 +25,21 @@ public class Bank {
         return account;
     }
 
-    public boolean closeAccount(long accountNumber) {
+    public void closeAccount(long accountNumber) {
         Account account = accounts.get(accountNumber);
 
-        if (account == null) {
-            return false;
-        }
         if (account.getBalance().compareTo(BigDecimal.ZERO) != 0) {
-            return false;
+            throw new AccountNotEmptyException(accountNumber, account.getBalance());
         }
         accounts.remove(accountNumber);
-        return true;
     }
 
-    public Account findAccount(long accountNumber) {
-        return accounts.get(accountNumber);
+    public Account getAccount(long accountNumber) {
+        Account account = accounts.get(accountNumber);
+        if (account == null) {
+            throw new AccountNotFoundException(accountNumber);
+        }
+        return account;
     }
 
     public List<Account> findByHolder(String query) {

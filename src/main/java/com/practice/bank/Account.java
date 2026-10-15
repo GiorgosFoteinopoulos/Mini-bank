@@ -1,5 +1,10 @@
 package com.practice.bank;
 
+import com.practice.bank.exception.BankException;
+import com.practice.bank.exception.DailyLimitExceededException;
+import com.practice.bank.exception.InsufficientFundsException;
+import com.practice.bank.exception.InvalidAmountException;
+
 import java.math.BigDecimal;
 
 public class Account {
@@ -36,42 +41,44 @@ public class Account {
         this(holder, pin, new BigDecimal("0.00"));
     }
 
-    public boolean deposit(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return false;
-        }
+    public void deposit(BigDecimal amount) {
+        requirePositive(amount);
         balance = balance.add(amount);
-        return true;
     }
 
     public boolean checkPin(String attempt) {
         return pin.equals(attempt);
     }
 
-    public boolean withdraw(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return false;
-        }
+    public void withdraw(BigDecimal amount) {
+        requirePositive(amount);
+
         if (balance.compareTo(amount) < 0) {
-            return false;
+            throw new InsufficientFundsException(balance, amount);
         }
-        if (withdrawnToday.add(amount).compareTo(DAILY_LIMIT) > 0) {
-            return false;
+       BigDecimal remaining = getRemainingDailyLimit();
+        if (amount.compareTo(remaining) > 0) {
+            throw new DailyLimitExceededException(remaining, amount);
         }
         balance = balance.subtract(amount);
         withdrawnToday = withdrawnToday.add(amount);
-        return true;
     }
 
-    public boolean transferTo(Account target, BigDecimal amount) {
+    public void transferTo(Account target, BigDecimal amount) {
         if (target == null || target == this) {
-            return false;
+            throw new IllegalArgumentException("Target account is required.");
         }
-        if (!this.withdraw(amount)) {
-            return false;
+        if (target == this) {
+            throw new BankException("You can't transfer to your own account.");
         }
+        withdraw(amount);
         target.deposit(amount);
-        return true;
+    }
+
+    private static void requirePositive(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidAmountException(amount);
+        }
     }
 
     public long getAccountNumber() {

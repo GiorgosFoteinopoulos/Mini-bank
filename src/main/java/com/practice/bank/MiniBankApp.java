@@ -16,9 +16,9 @@ public class MiniBankApp {
         Scanner scanner = new Scanner(System.in);
 
         Bank bank = new Bank("Mini Bank");
-        bank.openAccount("George", "1234", new BigDecimal("100.00"));
-        bank.openAccount("Anna", "5678", new BigDecimal("100.00"));
-        bank.openAccount("Maria", "4321", new BigDecimal("100.00"));
+        bank.openCheckingAccount("George", "1234", new BigDecimal("150.00"));
+        bank.openSavingsAccount("Anna", "5678", new BigDecimal("80.00"));
+        bank.openSavingsAccount("Maria", "4321", new BigDecimal("300.00"));
 
         System.out.println("Welcome to " + bank.getName());
         System.out.println("(Demo: 1001 George/1234, 1002 Anna/5678, 1003 Maria/4321)");
@@ -58,6 +58,10 @@ public class MiniBankApp {
                         System.out.println("A new day has started. Daily limits are reset.");
                     }
                     case "10" -> closeAccountFlow(scanner, bank, current);
+                    case "11" -> {
+                        BigDecimal paid = bank.applyYearlyInterest();
+                        System.out.println("Interest paid to savings accounts: " + paid + " EUR");
+                    }
                     case "0" -> running = false;
                     default  -> System.out.println("Unknown option: '" + choice + "'");
                 }
@@ -82,6 +86,7 @@ public class MiniBankApp {
         System.out.println("8. Search by holder name");
         System.out.println("9. Simulate a new day");
         System.out.println("10. Close an account");
+        System.out.println("11. Apply yearly interest");
         System.out.println("0. Exit");
         System.out.print("Choose:");
     }
@@ -106,7 +111,7 @@ public class MiniBankApp {
     }
 
     private static void withdrawFlow(Scanner scanner, Account account) {
-        System.out.println("You can withdraw up to " + account.getRemainingDailyLimit() + " more today.");
+        System.out.println( "Available: " + account.getAvailableBalance() + " EUR. You can still withdraw " + account.getRemainingDailyLimit() + " today.");
         BigDecimal amount = readAmount(scanner, "Amount to withdraw: ");
         account.withdraw(amount);
         System.out.println("Withdrawn " + amount + "New balance: " + account.getBalance());
@@ -140,8 +145,12 @@ public class MiniBankApp {
     }
 
     private static void projectInterest(Scanner scanner, Account account) {
+        if (!(account instanceof InterestBearing saver)) {
+            System.out.println("Checking accounts do not ear interest.");
+            return;
+        }
         int years = readPositiveInt(scanner, "How many years? ");
-        BigDecimal rate = new BigDecimal("0.03");
+        BigDecimal rate = saver.getInterestRate();
         BigDecimal projected = account.getBalance();
 
         for (int year = 1; year <= years; year++) {
@@ -152,17 +161,23 @@ public class MiniBankApp {
     }
 
         private static void openAccountFlow(Scanner scanner, Bank bank) {
+            System.out.println("Account type (C = checking, S = savings): ");
+            String type = scanner.nextLine().trim().toUpperCase();
             System.out.print("Holder name: ");
             String holder = scanner.nextLine().trim();
-            System.out.print("Choose 4-digit PIN: ");
+            System.out.print("Choose a 4-digit PIN: ");
             String pin = scanner.nextLine().trim();
             BigDecimal deposit = readAmount(scanner, "Opening deposit: ");
 
             try {
-                Account account = bank.openAccount(holder, pin, deposit);
+                Account account = switch (type) {
+                    case "C" -> bank.openCheckingAccount(holder, pin, deposit);
+                    case "S" -> bank.openSavingsAccount(holder, pin, deposit);
+                    default -> throw new IllegalArgumentException("Unknown account type: " + type + "'. Use C or S.");
+                };
                 System.out.println("Account opened: " + account);
-        } catch (IllegalArgumentException e) {
-                System.out.println("Could not open account" + e.getMessage());
+            } catch (IllegalArgumentException e) {
+                System.out.println("Could not open the account: " + e.getMessage());
             }
     }
 

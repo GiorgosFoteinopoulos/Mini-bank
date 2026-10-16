@@ -7,7 +7,7 @@ import com.practice.bank.exception.InvalidAmountException;
 
 import java.math.BigDecimal;
 
-public class Account {
+public abstract class Account {
 
     private static final BigDecimal DAILY_LIMIT = new BigDecimal("500.00");
     private static long nextAccountNumber = 1001;
@@ -19,7 +19,7 @@ public class Account {
     private BigDecimal withdrawnToday;
 
 
-    public Account(String holder, String pin, BigDecimal openingBalance) {
+    protected Account(String holder, String pin, BigDecimal openingBalance) {
         if (holder == null || holder.isBlank()) {
             throw new IllegalArgumentException("Holder name is required");
         }
@@ -37,11 +37,7 @@ public class Account {
         this.withdrawnToday = new BigDecimal("0.00");
     }
 
-    public Account(String holder, String pin) {
-        this(holder, pin, new BigDecimal("0.00"));
-    }
-
-    public void deposit(BigDecimal amount) {
+    public final void deposit(BigDecimal amount) {
         requirePositive(amount);
         balance = balance.add(amount);
     }
@@ -50,13 +46,15 @@ public class Account {
         return pin.equals(attempt);
     }
 
-    public void withdraw(BigDecimal amount) {
+    public final void withdraw(BigDecimal amount) {
         requirePositive(amount);
 
-        if (balance.compareTo(amount) < 0) {
-            throw new InsufficientFundsException(balance, amount);
+        BigDecimal available = getAvailableBalance();
+        if (amount.compareTo(available) > 0) {
+            throw new InsufficientFundsException(available, amount);
         }
-       BigDecimal remaining = getRemainingDailyLimit();
+
+        BigDecimal remaining = getRemainingDailyLimit();
         if (amount.compareTo(remaining) > 0) {
             throw new DailyLimitExceededException(remaining, amount);
         }
@@ -64,7 +62,7 @@ public class Account {
         withdrawnToday = withdrawnToday.add(amount);
     }
 
-    public void transferTo(Account target, BigDecimal amount) {
+    public final void transferTo(Account target, BigDecimal amount) {
         if (target == null || target == this) {
             throw new IllegalArgumentException("Target account is required.");
         }
@@ -84,12 +82,17 @@ public class Account {
     public long getAccountNumber() {
         return accountNumber;
     }
+    public abstract String getAccountType();
     public String getHolder() {
         return holder;
     }
     public BigDecimal getBalance() {
         return balance;
+    };
+    public BigDecimal getAvailableBalance() {
+        return balance;
     }
+    public abstract BigDecimal getDailyLimit();
     public BigDecimal getRemainingDailyLimit() {
         return DAILY_LIMIT.subtract(withdrawnToday);
     }
@@ -100,7 +103,7 @@ public class Account {
 
     @Override
     public String toString() {
-        return "Account #" + accountNumber + " | " + holder + " | balance " + balance + " EUR";
+        return "Account #" + accountNumber + " | " + getAccountType() + " | " + holder + " | balance " + balance + " EUR";
     }
 
     @Override

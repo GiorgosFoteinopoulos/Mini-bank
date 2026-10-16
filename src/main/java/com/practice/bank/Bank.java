@@ -19,12 +19,21 @@ public class Bank {
         return name;
     }
 
-    public Account openAccount(String holder, String pin, BigDecimal openingBalance) {
-        Account account = new Account(holder, pin, openingBalance);
+    private void register(Account account) {
         accounts.put(account.getAccountNumber(), account);
+    }
+
+    public CheckingAccount openCheckingAccount( String holder, String pin, BigDecimal openingBalance) {
+        CheckingAccount account = new CheckingAccount(holder, pin, openingBalance);
+        register(account);
         return account;
     }
 
+    public SavingsAccount openSavingsAccount( String holder, String pin, BigDecimal openingBalance) {
+        SavingsAccount account = new SavingsAccount(holder, pin, openingBalance);
+        register(account);
+        return account;
+    }
     public void closeAccount(long accountNumber) {
         Account account = accounts.get(accountNumber);
 
@@ -40,6 +49,21 @@ public class Bank {
             throw new AccountNotFoundException(accountNumber);
         }
         return account;
+    }
+
+    public BigDecimal applyYearlyInterest() {
+        BigDecimal totalPaid = BigDecimal.ZERO;
+
+        for (Account account : accounts.values()) {
+            if (account instanceof InterestBearing saver) {
+                BigDecimal interest = saver.calculateYearlyInterest();
+                if (interest.compareTo(BigDecimal.ZERO) > 0) {
+                    account.deposit(interest);
+                    totalPaid = totalPaid.add(interest);
+                }
+            }
+        }
+        return totalPaid;
     }
 
     public List<Account> findByHolder(String query) {

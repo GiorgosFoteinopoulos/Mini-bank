@@ -5,23 +5,23 @@ import java.math.BigDecimal;
 public class InsufficientFundsException extends BankException {
 
 
-    private final BigDecimal balance;
+    private final BigDecimal available;
     private final BigDecimal requested;
 
-    public InsufficientFundsException(BigDecimal balance, BigDecimal requested) {
+    public InsufficientFundsException(BigDecimal available, BigDecimal requested) {
 
-        super("Insufficient funds: balance " + balance + ", requested " + requested + ".");
-        this.balance = balance;
+        super("Insufficient funds: available " + available + ", requested " + requested + ".");
+        this.available = available;
         this.requested = requested;
     }
 
-    public BigDecimal getBalance() {
-        return balance;
+    public BigDecimal getAvailable() {
+        return available;
     }
     public BigDecimal getRequested() {
         return requested;
     }
     public BigDecimal getShortfall() {
-        return requested.subtract(balance);
+        return requested.subtract(available);
     }
 }

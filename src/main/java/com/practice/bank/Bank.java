@@ -51,19 +51,19 @@ public class Bank {
         return account;
     }
 
-    public BigDecimal applyYearlyInterest() {
-        BigDecimal totalPaid = BigDecimal.ZERO;
+    public Map<Account, BigDecimal> applyYearlyInterest() {
+        Map<Account, BigDecimal> payments = new LinkedHashMap<>();
 
         for (Account account : accounts.values()) {
             if (account instanceof InterestBearing saver) {
                 BigDecimal interest = saver.calculateYearlyInterest();
                 if (interest.compareTo(BigDecimal.ZERO) > 0) {
                     account.deposit(interest);
-                    totalPaid = totalPaid.add(interest);
+                    payments.put(account, interest);
                 }
             }
         }
-        return totalPaid;
+        return payments;
     }
 
     public List<Account> findByHolder(String query) {

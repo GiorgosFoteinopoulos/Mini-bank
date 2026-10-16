@@ -6,6 +6,7 @@ import com.practice.bank.exception.BankException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 
@@ -59,8 +60,17 @@ public class MiniBankApp {
                     }
                     case "10" -> closeAccountFlow(scanner, bank, current);
                     case "11" -> {
-                        BigDecimal paid = bank.applyYearlyInterest();
-                        System.out.println("Interest paid to savings accounts: " + paid + " EUR");
+                      Map<Account, BigDecimal> payments = bank.applyYearlyInterest();
+                      BigDecimal total = BigDecimal.ZERO;
+
+                        System.out.println("Yearly interest paid:");
+                        for (Map.Entry<Account, BigDecimal> entry : payments.entrySet()) {
+                            Account account = entry.getKey();
+                            System.out.println(" #" + account.getAccountNumber() + " " + account.getHolder()
+                             + ": +" + entry.getValue() + " EUR (new balance " + account.getBalance() + ")");
+                            total = total.add(entry.getValue());
+                        }
+                        System.out.println("Total paid by the bank: " + total + " EUR");
                     }
                     case "0" -> running = false;
                     default  -> System.out.println("Unknown option: '" + choice + "'");

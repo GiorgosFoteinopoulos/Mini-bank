@@ -5,6 +5,7 @@ import com.practice.bank.exception.AccountNotFoundException;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Bank {
 
@@ -43,12 +44,12 @@ public class Bank {
         accounts.remove(accountNumber);
     }
 
+    public Optional<Account> findAccount(long accountNumber) {
+        return Optional.ofNullable(accounts.get(accountNumber));
+    }
+
     public Account getAccount(long accountNumber) {
-        Account account = accounts.get(accountNumber);
-        if (account == null) {
-            throw new AccountNotFoundException(accountNumber);
-        }
-        return account;
+        return findAccount(accountNumber).orElseThrow(() -> new AccountNotFoundException(accountNumber));
     }
 
     public Map<Account, BigDecimal> applyYearlyInterest() {
@@ -58,7 +59,7 @@ public class Bank {
             if (account instanceof InterestBearing saver) {
                 BigDecimal interest = saver.calculateYearlyInterest();
                 if (interest.compareTo(BigDecimal.ZERO) > 0) {
-                    account.deposit(interest);
+                    account.addInterest(interest);
                     payments.put(account, interest);
                 }
             }
@@ -67,15 +68,11 @@ public class Bank {
     }
 
     public List<Account> findByHolder(String query) {
-        List<Account> result = new ArrayList<>();
         String lowerQuery = query.toLowerCase();
+        return accounts.values().stream()
+                .filter(account -> account.getHolder().toLowerCase().contains(lowerQuery))
+                .toList();
 
-        for (Account account : accounts.values()) {
-            if (account.getHolder().toLowerCase().contains(lowerQuery)) {
-                result.add(account);
-            }
-        }
-        return result;
     }
 
     public Collection<Account> getAllAccounts() {
@@ -86,37 +83,24 @@ public class Bank {
     }
 
     public BigDecimal getTotalDeposits() {
-        BigDecimal total = BigDecimal.ZERO;
-        for (Account account : accounts.values()) {
-            total = total.add(account.getBalance());
-        }
-        return total;
+        return accounts.values().stream()
+                .map(Account::getBalance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     public void startNewDay() {
-        for (Account account : accounts.values()) {
-            account.resetDailyLimit();
-        }
+        accounts.values().forEach(Account::resetDailyLimit);
     }
 
     public Set<String> getHolderNames() {
-        Set<String> names = new TreeSet<>();
-        for (Account account : accounts.values()) {
-            names.add(account.getHolder());
-        }
-        return names;
+        return accounts.values().stream()
+                .map(Account::getHolder)
+                .collect(Collectors.toCollection(TreeSet::new));
     }
 
-    public Account findRichestAccount() {
-        Account richest = null;
-
-        for (Account account : accounts.values()) {
-            if (richest == null || account.getBalance().compareTo(richest.getBalance()) > 0) {
-                richest = account;
-
-            }
-        }
-        return richest;
+    public Optional<Account> findRichestAccount() {
+        return accounts.values().stream()
+                .max(Comparator.comparing(Account::getBalance));
     }
 
 }

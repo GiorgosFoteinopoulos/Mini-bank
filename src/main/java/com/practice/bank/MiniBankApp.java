@@ -5,6 +5,7 @@ import com.practice.bank.exception.BankException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -12,9 +13,13 @@ import java.util.Scanner;
 
 public class MiniBankApp {
 
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
     public static void main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
+
+
 
         Bank bank = new Bank("Mini Bank");
         bank.openCheckingAccount("George", "1234", new BigDecimal("150.00"));
@@ -72,6 +77,7 @@ public class MiniBankApp {
                         }
                         System.out.println("Total paid by the bank: " + total + " EUR");
                     }
+                    case "12" -> statementFlow(current);
                     case "0" -> running = false;
                     default  -> System.out.println("Unknown option: '" + choice + "'");
                 }
@@ -97,6 +103,7 @@ public class MiniBankApp {
         System.out.println("9. Simulate a new day");
         System.out.println("10. Close an account");
         System.out.println("11. Apply yearly interest");
+        System.out.println("12. Account statement");
         System.out.println("0. Exit");
         System.out.print("Choose:");
     }
@@ -134,6 +141,23 @@ public class MiniBankApp {
        from.transferTo(target, amount);
         System.out.println("Transferred " + amount + " to " + target.getHolder() + ".");
         System.out.println(from);
+    }
+
+    private static void statementFlow(Account account) {
+        System.out.println("=== Statement for " + account.getHolder() + " (#" + account.getAccountNumber() + ") ===");
+
+        for (Transaction t : account.getTransactions()) {
+            String signedAmount = (t.type().isCredit() ? "+" : "-") + t.amount();
+            System.out.printf("%s %-13s %10s %10s %s%n",
+                    t.timestamp().format(TIME_FORMAT),
+                    t.type().getLabel(),
+                    signedAmount,
+                    t.balanceAfter(),
+                    t.description());
+        }
+
+        System.out.println("Total in: " + account.getTotalIn() + " EUR");
+        System.out.println("Total out: " + account.getTotalOut() + " EUR");
     }
 
     private static boolean checkPin(Scanner scanner, Account  account) {
@@ -199,12 +223,10 @@ public class MiniBankApp {
         System.out.println("Total deposits: " + bank.getTotalDeposits() + " EUR");
         System.out.println("Customers: " + bank.getHolderNames());
 
-        Account richest = bank.findRichestAccount();
-        if (richest != null) {
-            System.out.println("Richest account: " + richest);
-        } else {
-            System.out.println("Richest account: none (the bank has no accounts with money).");
-        }
+        bank.findRichestAccount().ifPresentOrElse(
+                richest -> System.out.println("Richest account: " + richest),
+                () -> System.out.println("Richest account: none (the bank has no accounts")
+        );
     }
 
     private static void searchFlow(Scanner scanner, Bank bank) {

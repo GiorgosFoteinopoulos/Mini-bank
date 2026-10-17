@@ -6,11 +6,15 @@ import com.practice.bank.exception.InsufficientFundsException;
 import com.practice.bank.exception.InvalidAmountException;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.time.LocalDateTime;
 
 public abstract class Account {
 
     private static final BigDecimal DAILY_LIMIT = new BigDecimal("500.00");
     private static long nextAccountNumber = 1001;
+    private final List<Transaction> transactions = new ArrayList<>();
 
     private final long accountNumber;
     private final String holder;
@@ -34,12 +38,13 @@ public abstract class Account {
         this.holder = holder;
         this.pin = pin;
         this.balance = openingBalance;
+        transactions.add(new Transaction(LocalDateTime.now(), TransactionType.OPENING, openingBalance, openingBalance, "Account opened"));
         this.withdrawnToday = new BigDecimal("0.00");
     }
 
     public final void deposit(BigDecimal amount) {
         requirePositive(amount);
-        balance = balance.add(amount);
+        credit(amount, TransactionType.DEPOSIT, "Cash withdrawal");
     }
 
     public boolean checkPin(String attempt) {
@@ -47,6 +52,28 @@ public abstract class Account {
     }
 
     public final void withdraw(BigDecimal amount) {
+        requirePositive(amount);
+        debit(amount, TransactionType.WITHDRAWAL, "Cash withdrawal");
+    }
+
+    public final void transferTo(Account target, BigDecimal amount) {
+        if (target == null || target == this) {
+            throw new IllegalArgumentException("Target account is required.");
+        }
+        if (target == this) {
+            throw new BankException("You can't transfer to your own account.");
+        }
+        checkWithdrawal(amount);
+        debit(amount, TransactionType.TRANSFER_OUT, "To #" + target.accountNumber + " " + target.holder);
+        target.credit(amount, TransactionType.TRANSFER_IN, "From #" + accountNumber + " " + holder);
+    }
+
+    public final void addInterest(BigDecimal amount) {
+        requirePositive(amount);
+        credit(amount, TransactionType.INTEREST, "Yearly interest");
+    }
+
+    private void checkWithdrawal(BigDecimal amount) {
         requirePositive(amount);
 
         BigDecimal available = getAvailableBalance();
@@ -58,25 +85,42 @@ public abstract class Account {
         if (amount.compareTo(remaining) > 0) {
             throw new DailyLimitExceededException(remaining, amount);
         }
-        balance = balance.subtract(amount);
-        withdrawnToday = withdrawnToday.add(amount);
     }
 
-    public final void transferTo(Account target, BigDecimal amount) {
-        if (target == null || target == this) {
-            throw new IllegalArgumentException("Target account is required.");
-        }
-        if (target == this) {
-            throw new BankException("You can't transfer to your own account.");
-        }
-        withdraw(amount);
-        target.deposit(amount);
+    private void credit(BigDecimal amount, TransactionType type, String description) {
+        balance = balance.add(amount);
+        transactions.add(new Transaction(LocalDateTime.now(), type, amount, balance, description));
+    }
+
+    private void debit(BigDecimal amount, TransactionType type, String description) {
+        balance = balance.subtract(amount);
+        withdrawnToday = withdrawnToday.add(amount);
+        transactions.add(new Transaction(LocalDateTime.now(), type, amount, balance, description));
     }
 
     private static void requirePositive(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidAmountException(amount);
         }
+    }
+
+    public List<Transaction> getTransactions() {
+        return List.copyOf(transactions);
+    }
+
+    public BigDecimal getTotalIn() {
+        return transactions.stream()
+                .filter(t -> t.type().isCredit())
+                .map(Transaction::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    }
+
+    public BigDecimal getTotalOut() {
+        return transactions.stream()
+                .filter(t -> !t.type().isCredit())
+                .map(Transaction::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     public long getAccountNumber() {
